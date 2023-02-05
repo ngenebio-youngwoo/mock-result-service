@@ -1,0 +1,11 @@
+spring:
+    config:
+        activate:
+            on-profile: tc
+    devtools:
+        livereload:
+            enabled: true
+server:
+    port: 9090
+logging:
+    config: classpath:logback/logback-tc.xml

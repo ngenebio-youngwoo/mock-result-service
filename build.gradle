@@ -1,0 +1,154 @@
+buildscript {
+    ext {
+        queryDslVersion = "5.0.0"
+        testcontainersVersion = "1.17.6"
+        snippetsDir = file('build/generated-snippets')
+        restdocsVersion = '2.0.6.RELEASE'
+    }
+}
+
+plugins {
+    id "java"
+    id "org.springframework.boot" version "3.0.0"
+    id "io.spring.dependency-management" version "1.1.0"
+    id "idea"
+    id "org.asciidoctor.jvm.convert" version "3.3.2"
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+
+    maven {
+        url = 'https://maven.pkg.github.com/ngenebio-youngwoo/VDP-model'
+        credentials {
+            username = project.findProperty("gpr.user") ?: System.getenv("USERNAME")
+            password = project.findProperty("gpr.key") ?: System.getenv("TOKEN")
+        }
+    }
+}
+
+group = "com.ngenebio.msa.mock.result"
+version = "0.0.1.0"
+
+sourceCompatibility = 17
+targetCompatibility = 17
+
+/** Spring RestDocs */
+configurations {
+    asciidoctorExtensions
+}
+
+dependencies {
+    /* ngenebio */
+    implementation "com.ngenebio.msa:vdp-model:0.0.1.10"
+
+    /* spring */
+    implementation "org.springframework.boot:spring-boot-starter-web"
+    implementation "org.springframework.boot:spring-boot-starter-security"
+    implementation "org.springframework.boot:spring-boot-starter-webflux"
+
+    /* utils */
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml'
+
+    /* dev */
+    developmentOnly "org.springframework.boot:spring-boot-devtools"
+    compileOnly "org.projectlombok:lombok"
+    annotationProcessor "org.projectlombok:lombok"
+
+    /* testing */
+    testImplementation "org.springframework.boot:spring-boot-starter-test"
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.junit.platform:junit-platform-launcher'
+    testCompileOnly "org.projectlombok:lombok"
+    testAnnotationProcessor "org.projectlombok:lombok"
+
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.9.1"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.9.1"
+    testImplementation "org.assertj:assertj-core:3.23.1"
+
+    testImplementation "org.testcontainers:junit-jupiter:$testcontainersVersion"
+
+    /* testing - database */
+    testImplementation "org.testcontainers:testcontainers:$testcontainersVersion"
+
+    /* testing - mocking api server */
+    testImplementation "com.squareup.okhttp3:okhttp:4.10.0"
+    testImplementation "com.squareup.okhttp3:mockwebserver:4.10.0"
+
+    /* Spring RestDocs */
+    asciidoctorExtensions "org.springframework.restdocs:spring-restdocs-asciidoctor:$restdocsVersion"
+    testImplementation "org.springframework.restdocs:spring-restdocs-mockmvc"
+}
+
+java {
+    toolchain {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}
+
+tasks {
+    test {
+        useJUnitPlatform()
+    }
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+clean {
+    delete 'src/main/generated'
+    delete 'src/test/generated_tests'
+    delete 'out'
+}
+
+/* Spring RestDocs */
+ext {
+    snippetsDir = file('build/generated-snippets')
+}
+
+test {
+    outputs.dir snippetsDir
+}
+
+asciidoctor {
+    doFirst {
+        delete file("src/main/resources/static/docs")
+    }
+
+    dependsOn test
+    configurations "asciidoctorExtensions"
+    inputs.dir snippetsDir
+    outputDir "${asciidoctor.outputDir}/html5"
+}
+
+bootJar {
+    dependsOn asciidoctor
+    from ("${asciidoctor.outputDir}") {
+        into "static/docs"
+    }
+}
+
+task copyDocumentToStatic(type: Copy) {
+    dependsOn asciidoctor
+
+    from file("build/docs/asciidoc/html5")
+    into file("src/main/resources/static/docs")
+}
+
+task copyDocumentToJar(type: Copy) {
+    dependsOn asciidoctor
+
+    from file("build/docs/asciidoc")
+    into file("BOOT-INF/classes/static/docs")
+}
+
+build {
+    dependsOn copyDocumentToStatic
+    dependsOn copyDocumentToJar
+}

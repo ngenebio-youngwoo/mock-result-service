@@ -1,0 +1,8 @@
+spring:
+    config:
+        activate:
+            on-profile: prod
+server:
+    port: 8080
+logging:
+    config: classpath:logback/logback-prod.xml

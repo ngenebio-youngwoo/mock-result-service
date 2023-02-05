@@ -1,0 +1,15 @@
+spring:
+    config:
+        activate:
+            on-profile: local
+    devtools:
+        livereload:
+            enabled: true
+server:
+    port: 39090
+logging:
+    level:
+        root: info
+        org.hibernate.sql: debug
+        org.hibernate.type.descriptor.sql: trace
+        io.r2dbc.sql: TRACE
